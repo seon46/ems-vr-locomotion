@@ -1,0 +1,24 @@
+# Build
+build/
+.pio/
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arduino
+*.elf
+*.hex
+*.bin
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials (safety)
+credentials.h
+wifi_config.h
