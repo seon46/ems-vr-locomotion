@@ -73,12 +73,21 @@
 ```
 ems-vr-locomotion/
 ├── README.md
+├── unity/
+│   └── Scripts/
+│       ├── GaitTiming.cs         # 歩行位相の共有プロバイダ（全スクリプトが参照）
+│       ├── EMSTrigger.cs         # Normalized Time → EMS発火 (UDP FIRE)
+│       ├── FootstepAudio.cs      # 踵接地タイミングで足音再生
+│       ├── HeadFollow.cs         # 首支点のVRカメラ追従 + 歩行同期head bob
+│       └── GaitDiagnostics.cs    # 踵接地位相の実測ツール
 ├── firmware/
-│   ├── vibration_motor/     # 足裏振動モーターファームウェア (Arduino/ESP32)
+│   ├── vibration_motor/          # 足裏振動モーターファームウェア (Arduino/ESP32)
 │   │   └── vibration_4motor.ino
-│   └── ems_trigger/         # EMS制御ファームウェア (PlatformIO/ESP32-C3)
-├── hardware/                # 回路図・基板設計データ (KiCad)
-└── docs/                    # 研究資料・配線図
+│   └── ems_trigger/              # EMS制御ファームウェア (PlatformIO/ESP32-C3)
+├── tools/
+│   └── udp_test_send.py          # EMS UDPテスト送信ツール (Python)
+├── hardware/                     # 回路図・基板設計データ (KiCad)
+└── docs/                         # 研究資料・配線図
 ```
 
 ## 先行研究
