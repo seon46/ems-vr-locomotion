@@ -60,8 +60,8 @@ String generateHTML();
 // ============================================================
 //  WiFi接続先（ルータの設定に合わせる）
 // ============================================================
-const char* ssid     = "REDACTED_SSID";     // ルータのSSID
-const char* password = "REDACTED_PASSWORD";     // ルータのパスワード
+const char* ssid     = "　";     // ルータのSSID
+const char* password = "　";     // ルータのパスワード
 
 WebServer webServer(80);   // WebServer（パラメータ設定用）
 WiFiUDP udp;               // UDPトリガ受信用
