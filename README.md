@@ -1,19 +1,27 @@
 # EMS-VR Locomotion Interface
 
-座位VRユーザーに対して、多チャンネル下肢電気刺激（EMS）と歩行アニメーションを同期させることで擬似歩行感覚を生成するロコモーションインターフェースの研究プロジェクト。
+座位VRユーザーに擬似的な歩行感覚を生成するロコモーションインターフェースの研究プロジェクト。
+6チャンネルの下肢EMS（電気筋刺激）と足裏振動を歩行アニメーションに同期させることで、座ったままでも「歩いている」と感じられる体験を目指す。
 
-**Saitama University / Parinya Lab — 遠藤 瀬音（Endo Seno）**
+**埼玉大学大学院 理工学研究科 数理電子情報系専攻 / Parinya Lab — 遠藤 瀬音（Endo Seno）**
 
 ## 概要
 
-本研究では、座ったままVR空間を歩き回れるロコモーションインターフェースを開発しています。ユーザーの下肢EMG（筋電図）信号を入力として移動を制御し、同時にEMS（電気筋刺激）で歩行に伴う筋収縮感覚を再現することで、直感的かつ没入感の高い歩行体験を目指します。
+本研究では、VR空間内の歩行アニメーションに合わせて下肢の筋肉にEMSを与え、歩行に伴う筋収縮感覚を再現する座位向けロコモーションインターフェースを開発しています。
 
-### 研究の特徴
+先行研究 LegSense（Um et al., UIST 2024）の歩行感覚EMS提示をベースに、VRアバターのスタミナ低下に連動した疲労感の演出へ拡張することを目指しています。
 
-- **EMG入力 + EMS歩行感覚補完の統合**: 入力と触覚フィードバックを一つのシステムに統合
-- **座位での利用**: 車椅子ユーザーやオフィス環境など、歩行が困難・不適切な状況でも利用可能
-- **多チャンネル刺激**: Battye et al. (1966) の筋活動データに基づく6チャンネルEMS + 4チャンネル足裏振動フィードバック
-- **先行研究の発展**: LegSense (Um et al., 2024) をベースに、ロコモーションインターフェースとしての操作性を追求
+### 実装済みの機能
+
+- **6チャンネルEMS歩行同期**: Battye et al. (1966) の筋活動データに基づき、歩行アニメーションのNormalized Timeから各筋の収縮タイミングでEMSを発火
+- **足裏振動フィードバック**: 4チャンネル（両足の踵・前足部）のERMモーターによる接地感の提示（ファームウェア実装済み、Unity側は未統合）
+- **VR歩行環境**: 手続き的生成の廊下シーン、鏡による自己アバター視認、歩行同期のhead bob、足音再生
+
+### 安全基準
+
+- 出力上限: ≤ 10 mA RMS、≤ ±50 V
+- 1回の発火は最大1秒（ファームウェアで制限）
+- ヒトへの適用前にIRB承認を取得予定
 
 ## システム構成
 
@@ -24,8 +32,8 @@
 │  ├── Walking Animation (Mixamo)                             │
 │  ├── EMSTrigger.cs (Normalized Time → 筋活動タイミング発火)  │
 │  └── UDP Broadcast (192.168.11.255:8266)                    │
-│       ├── "FIRE,l1,l2,l3,l4,l5,l6"                         │
-│       └── "VIB,rh,rf,lh,lf"                                │
+│       ├── "FIRE,l1,l2,l3,l4,l5,l6"  (EMS, Level 0〜15)    │
+│       └── "VIB,rh,rf,lh,lf"         (振動, PWM 0〜255)    │
 └──────────┬──────────────────────────┬───────────────────────┘
            │                          │
     ┌──────▼──────┐          ┌────────▼────────┐
@@ -48,9 +56,9 @@
 
 | コンポーネント | 説明 |
 |---|---|
-| XIAO ESP32-C3 × 6 | マイコン（WiFi/UDP受信） |
+| XIAO ESP32-C3 × 6 | マイコン（WiFi/UDP受信、IP固定: 192.168.11.101〜106） |
 | AC_TENS SHOCK MODULE v2 × 6 | EMS出力モジュール |
-| キャリアボード | KiCad設計、JLCPCB製造 |
+| キャリアボード × 6 | KiCad設計、JLCPCB製造 |
 
 ### 振動フィードバック（4ch）
 
@@ -75,20 +83,47 @@ ems-vr-locomotion/
 ├── README.md
 ├── unity/
 │   └── Scripts/
-│       ├── GaitTiming.cs         # 歩行位相の共有プロバイダ（全スクリプトが参照）
-│       ├── EMSTrigger.cs         # Normalized Time → EMS発火 (UDP FIRE)
-│       ├── FootstepAudio.cs      # 踵接地タイミングで足音再生
-│       ├── HeadFollow.cs         # 首支点のVRカメラ追従 + 歩行同期head bob
-│       └── GaitDiagnostics.cs    # 踵接地位相の実測ツール
+│       ├── GaitTiming.cs          # 歩行位相の共有プロバイダ（全スクリプトが参照）
+│       ├── EMSTrigger.cs          # Normalized Time → EMS発火 (UDP FIRE)
+│       ├── FootstepAudio.cs       # 踵接地タイミングで足音再生
+│       ├── HeadFollow.cs          # 首支点のVRカメラ追従 + 歩行同期head bob
+│       ├── WalkInput.cs           # XRコントローラー/キーボードによる移動入力
+│       ├── VRIKTargetFollower.cs  # XRハンドトラッキング → IKターゲット追従
+│       ├── CorridorGenerator.cs   # 手続き的生成の廊下シーン
+│       ├── MirrorReflection.cs    # 平面鏡反射カメラ（自己アバター視認用）
+│       └── GaitDiagnostics.cs     # 踵接地位相の実測ツール
 ├── firmware/
-│   ├── vibration_motor/          # 足裏振動モーターファームウェア (Arduino/ESP32)
-│   │   └── vibration_4motor.ino
-│   └── ems_trigger/              # EMS制御ファームウェア (PlatformIO/ESP32-C3)
-├── tools/
-│   └── udp_test_send.py          # EMS UDPテスト送信ツール (Python)
-├── hardware/                     # 回路図・基板設計データ (KiCad)
-└── docs/                         # 研究資料・配線図
+│   ├── ems_trigger/               # EMS制御ファームウェア (PlatformIO/ESP32-C3)
+│   │   └── main.cpp
+│   └── vibration_motor/           # 足裏振動モーターファームウェア (Arduino/ESP32)
+│       └── vibration_4motor.ino
+├── hardware/
+│   └── carrier_board/             # EMSキャリアボード基板設計データ (KiCad)
+│       └── Gerber/                # 製造用ガーバーファイル
+└── tools/
+    └── udp_test_send.py           # EMS UDPテスト送信ツール (Python)
 ```
+
+## 通信プロトコル
+
+WiFiネットワーク上でUDPブロードキャストを使用:
+
+| 項目 | 内容 |
+|---|---|
+| ポート | 8266 |
+| EMS発火 | `FIRE,l1,l2,l3,l4,l5,l6` — 各チャンネルのLevel (0〜15) |
+| 振動制御 | `VIB,rh,rf,lh,lf` — 各モーターのPWM強度 (0〜255) |
+| デバイス探索 | `WHO` → 各デバイスがID・IP・パラメータを返信 |
+
+各EMSデバイスはWebUI（HTTP）でパルス幅・周波数・刺激時間のパラメータを設定できる。
+
+## 今後の予定
+
+- 足裏振動のUnity側統合（ファームウェアは実装済み）
+- スタミナ連動型の疲労感演出の設計・実装（歩行パターンの劣化 + クロスモーダル知覚による疲労感の表現）
+- オシロスコープによる出力波形の安全性検証
+- IRB申請・承認
+- ユーザースタディの設計・実施
 
 ## 先行研究
 
@@ -96,15 +131,6 @@ ems-vr-locomotion/
 - Takahashi, A. et al. (2022). Increasing a Seated Passenger's Walking Sensation Using EMS. *Frontiers in VR*.
 - Ota, S. et al. (2024). The Effect of Electrical Muscle Stimulation on Foot Pressure Distribution and Walking Sensation in Passive Walking in Seated VR. *Frontiers in VR*.
 - Battye, C.K. & Joseph, J. (1966). An investigation by telemetering of the activity of some muscles in walking. *Medical & Biological Engineering*.
-
-## 通信プロトコル
-
-WiFiネットワーク上でUDPブロードキャストを使用:
-
-- **ポート**: 8266
-- **EMS**: `FIRE,l1,l2,l3,l4,l5,l6` — 各チャンネルの強度 (0/1)
-- **振動**: `VIB,rh,rf,lh,lf` — 各モーターのPWM強度 (0-255)
-- **テスト**: `T,値` / `T1,値`〜`T4,値` / `STOP` / `STATUS`
 
 ## ライセンス
 
